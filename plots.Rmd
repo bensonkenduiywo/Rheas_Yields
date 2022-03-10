@@ -61,9 +61,21 @@ write.csv(yields, 'D:/RCMRD/Code/Rheas_Yields/uganda_aggregated_1990_2022.csv')
 
 ## Plots
 
-```{r y1}
-plot(gwad~h_year, data=yields, type='l')
+Annual maize yields variation.
+
+```{r y2}
 x11()
 boxplot(gwad~h_year, data=yields, xlab='Year', ylab = 'Maize yields (kg/ha)')
 ```
+
+Country level yields.
+
+```{r y3}
+x11()
+c <- aggregate(gwad~h_year, df, mean, na.rm=TRUE)
+c$gwad <- c$gwad/1000
+barplot(gwad~h_year, data=c, xlab='Year', ylab = 'Maize yields (MT/ha)', main="Country's total production", ylim = c(0,2))
+
+```
+
 
