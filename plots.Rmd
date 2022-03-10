@@ -9,22 +9,61 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Load data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Load data
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r d1}
+#df <- read.csv('D:/RCMRD/Code/Rheas_Yields/kenya_1990_2022.csv')
+#head(df,n =5)
+df <- read.csv('D:/RCMRD/Code/Rheas_Yields/uganda_1990_2022.csv')
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Data preparation
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Extract Harvest & plant dates into months and years
+
+```{r d2}
+df$harvest <- as.Date(df$harvest)
+df$planting <- as.Date(df$planting)
+df$h_month  <- as.numeric(format(df$harvest,"%m"))
+df$h_year  <- as.numeric(format(df$harvest,"%Y"))
+df$p_month  <- as.numeric(format(df$planting,"%m"))
+df$p_year  <- as.numeric(format(df$planting,"%Y"))
+head(df, 5)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Let's define/extract the various seasons in Kenya.
+
+```{r s1}
+#Long Rain Long Dry (LRLD) season
+#df$season <- df[df$p_month > 1 & df$p_month < 6, ]
+df$season <- NA
+df$season[df$p_month > 1 & df$p_month < 6] <- 'LRLD'
+#Short Rain Short Dry (SRSD)
+df$season[df$p_month > 9 & df$p_month <= 12] <- 'SRSD'
+#sd <- df[df$p_month > 9 & df$p_month <= 12,]
+
+```
+
+
+lets now aggregate RHEAS estimated yields per year per county.
+
+```{r y1}
+#lr <- aggregate(df[,'gwad'], df[ , c("cname", "h_year")], mean, na.rm=TRUE)
+yields <- aggregate(gwad~cname+h_year, df, mean, na.rm=TRUE)
+#names(yields)[1] <- 'district'
+write.csv(yields, 'D:/RCMRD/Code/Rheas_Yields/uganda_aggregated_1990_2022.csv')
+
+```
+
+
+## Plots
+
+```{r y1}
+plot(gwad~h_year, data=yields, type='l')
+x11()
+boxplot(gwad~h_year, data=yields, xlab='Year', ylab = 'Maize yields (kg/ha)')
+```
+
