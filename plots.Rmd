@@ -1,5 +1,5 @@
 ---
-title: "RHEAS yield prediction visualization"
+title: "RHEAS preliminary maize yield prediction visualization"
 author: "Benson Kenduiywo"
 date: "08/03/2022"
 output: html_document
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Load data
 
-```{r d1}
+```{r d1, echo=FALSE}
 #df <- read.csv('D:/RCMRD/Code/Rheas_Yields/kenya_1990_2022.csv')
 #head(df,n =5)
 df <- read.csv('D:/RCMRD/Code/Rheas_Yields/uganda_1990_2022.csv')
@@ -24,7 +24,7 @@ df <- read.csv('D:/RCMRD/Code/Rheas_Yields/uganda_1990_2022.csv')
 
 Extract Harvest & plant dates into months and years
 
-```{r d2}
+```{r d2, echo=FALSE}
 df$harvest <- as.Date(df$harvest)
 df$planting <- as.Date(df$planting)
 df$h_month  <- as.numeric(format(df$harvest,"%m"))
@@ -36,7 +36,7 @@ head(df, 5)
 
 Let's define/extract the various seasons in Kenya.
 
-```{r s1}
+```{r s1, echo=FALSE}
 #Long Rain Long Dry (LRLD) season
 #df$season <- df[df$p_month > 1 & df$p_month < 6, ]
 df$season <- NA
@@ -50,10 +50,10 @@ df$season[df$p_month > 9 & df$p_month <= 12] <- 'SRSD'
 
 lets now aggregate RHEAS estimated yields per year per county.
 
-```{r y1}
+```{r y1, echo=FALSE}
 #lr <- aggregate(df[,'gwad'], df[ , c("cname", "h_year")], mean, na.rm=TRUE)
 yields <- aggregate(gwad~cname+h_year, df, mean, na.rm=TRUE)
-#names(yields)[1] <- 'district'
+names(yields)[1] <- 'District'
 write.csv(yields, 'D:/RCMRD/Code/Rheas_Yields/uganda_aggregated_1990_2022.csv')
 
 ```
@@ -63,14 +63,14 @@ write.csv(yields, 'D:/RCMRD/Code/Rheas_Yields/uganda_aggregated_1990_2022.csv')
 
 Annual maize yields variation.
 
-```{r y2}
+```{r y2, echo=FALSE}
 x11()
 boxplot(gwad~h_year, data=yields, xlab='Year', ylab = 'Maize yields (kg/ha)')
 ```
 
 Country level yields.
 
-```{r y3}
+```{r y3, echo=FALSE}
 x11()
 c <- aggregate(gwad~h_year, df, mean, na.rm=TRUE)
 c$gwad <- c$gwad/1000
@@ -79,3 +79,41 @@ barplot(gwad~h_year, data=c, xlab='Year', ylab = 'Maize yields (MT/ha)', main="C
 ```
 
 
+## Display maps
+
+Load country shapefile
+
+```{r ds1, echo=FALSE}
+library(raster)
+ug <- shapefile('uga_admbnda_adm2_ubos_20200824.shp') #Districts
+#ug <- getData("GADM",country="UGA",level=2) #Boundaries are old
+names(ug)[3] <- 'District'
+proj <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(ug) <- proj
+library(tmap)
+tmap_mode("view")
+tm_shape(ug, name="Region") +
+  tm_polygons('ADM1_EN', title='Region', id='ADM1_EN', legend.show = TRUE)+
+  tm_shape(ug, name="District") +
+  tm_borders(col = 'black',lwd = 0.75)+
+  tm_text("District", size = 0.9)
+
+```
+
+Merge boundary with average distict level yield information.
+
+```{r ds2, echo=FALSE}
+d <- aggregate(gwad~District, yields, mean, na.rm=TRUE)
+dff <- merge(ug[,"District"],d, by="District")
+```
+
+Visualize average district level information.
+
+```{r ds3, echo=FALSE}
+tmap_mode("view")
+tm_shape(dff, name="Average yield (kg/ha) per District") +
+  tm_polygons("gwad", id="gwad",breaks = c(100, 500, 1000, 1500, 2000,2500),  title="Maize yield (kg/ha) 1990-2021") +
+  tm_text("District", size = 0.9)+
+  tm_format("World")
+
+```
